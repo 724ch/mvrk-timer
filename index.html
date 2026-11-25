@@ -51,6 +51,23 @@
   body.run.idle-ui header, body.run.idle-ui footer, body.run.idle-ui #hint{opacity:0;}
   body.run.idle-ui{cursor:none;}
   body.run .set, body.run #presets{display:none;}
+
+  /* ---------- 모바일 ---------- */
+  @media (max-width:640px){
+    html,body{height:100dvh;}
+    header{padding:calc(12px + env(safe-area-inset-top)) 16px 8px;}
+    header img{height:15px;}
+    header [data-num], header .sep, #fs, #hint, .set{display:none;}
+    header button{font-size:12px;padding:6px 9px;}
+    footer{padding:8px 16px calc(16px + env(safe-area-inset-bottom));gap:8px;}
+    footer > .row{width:100%;}
+    #presets{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;width:100%;}
+    #presets button{padding:9px 0;font-size:12px;}
+    footer > .row:last-child{display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;}
+    footer > .row:last-child button{height:50px;font-size:15px;min-width:0;}
+    #go{font-size:17px !important;background:var(--ink);color:var(--paper);}
+    .arr{padding:4px 6px;}
+  }
 </style>
 </head>
 <body>
@@ -196,7 +213,7 @@ function renderTime() {
   const t = shown(), m = String(Math.floor(t / 60)).padStart(2, '0'), s = String(t % 60).padStart(2, '0');
   const key = m + s + st.num + DH;
   if (key === lastKey) return; lastKey = key;
-  const aw = Math.max(28, DH * 0.24), ah = aw * 0.6;
+  const aw = Math.max(innerWidth <= 640 ? 40 : 28, DH * 0.24), ah = aw * 0.6;
   const arrows = u => `<button class="arr up" data-u="${u}" data-d="1" style="width:${aw}px;height:${ah + 12}px;margin-bottom:${DH * 0.08}px" aria-label="늘리기">${ARR('M3 11 L12 3 L21 11')}</button>`
                     + `<button class="arr dn" data-u="${u}" data-d="-1" style="width:${aw}px;height:${ah + 12}px;margin-top:${DH * 0.08}px" aria-label="줄이기">${ARR('M3 3 L12 11 L21 3')}</button>`;
   if (st.num === 'seg') {
@@ -232,8 +249,10 @@ function layout() {
     GS = Math.min(H * 0.8, W * 0.36); gap = Math.max(24, W * 0.04);
     DH = Math.min((W - GS - gap - 60) / ratio, H * 0.34);
   } else {
-    DH = Math.min((W - 40) / ratio, H * 0.16); gap = DH * 0.6;
-    GS = Math.min(W * 0.8, H - DH - gap - 120);
+    DH = Math.min((W - 32) / ratio, H * 0.2);
+    const aH = Math.max(40, DH * 0.24) * 0.6 + 12 + DH * 0.08;
+    gap = aH + 8;
+    GS = Math.max(80, Math.min(W * 0.86, H - DH - gap - aH - 16));
   }
   $('#stage').style.gap = gap + 'px';
   const g = $('#gfx'); g.style.width = GS + 'px'; g.style.height = GS + 'px';
@@ -310,6 +329,7 @@ const q = new URLSearchParams(location.search);
 if (q.get('num')) st.num = q.get('num');
 if (q.get('left')) st.left = +q.get('left');
 if (q.get('inv')) document.body.classList.add('inv');
+if (q.get('run')) setTimeout(start, 50);
 sync();
 requestAnimationFrame(frame);
 </script>
