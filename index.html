@@ -52,6 +52,22 @@
   body.run.idle-ui{cursor:none;}
   body.run .set, body.run #presets{display:none;}
 
+  /* 숫자 눌러 입력 */
+  #time{cursor:pointer;} body.run #time{cursor:default;}
+  #sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center;}
+  #sheet[hidden]{display:none;}
+  #sheet .card{background:var(--paper);color:var(--ink);border-top:2px solid var(--ink);width:100%;max-width:440px;
+               padding:18px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px;}
+  @media (min-width:641px){ #sheet{align-items:center;} #sheet .card{border:2px solid var(--ink);} }
+  #sheet .t{font-size:13px;color:var(--gray);}
+  #sheet .f{display:flex;align-items:center;gap:8px;justify-content:center;}
+  #sheet input{width:96px;font:inherit;font-size:40px;font-weight:700;text-align:center;padding:8px 4px;border:1px solid var(--ink);
+               background:var(--paper);color:var(--ink);border-radius:0;font-variant-numeric:tabular-nums;}
+  #sheet .f span{font-size:15px;color:var(--gray);margin-right:6px;}
+  #sheet .b{display:grid;grid-template-columns:1fr 2fr;gap:6px;}
+  #sheet .b button{height:50px;font-size:15px;}
+  #sheetOk{background:var(--ink);color:var(--paper);font-weight:700;}
+
   /* ---------- 모바일 ---------- */
   @media (max-width:640px){
     html,body{height:100dvh;}
@@ -86,7 +102,18 @@
 <div id="stage">
   <div id="gfx"><canvas id="cv"></canvas></div>
   <div id="time"></div>
-  <div id="hint">스페이스 = 시작/멈춤 · R = 처음으로 · F = 전체화면 · 숫자 위아래 화살표로 시간 조절</div>
+  <div id="hint">스페이스 = 시작/멈춤 · R = 처음으로 · F = 전체화면 · 숫자를 누르면 직접 입력</div>
+</div>
+
+<div id="sheet" hidden>
+  <form class="card" id="sheetForm">
+    <div class="t">시간 입력</div>
+    <div class="f">
+      <input id="shM" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off"><span>분</span>
+      <input id="shS" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off"><span>초</span>
+    </div>
+    <div class="b"><button type="button" class="ghost" id="sheetNo">취소</button><button type="submit" id="sheetOk">확인</button></div>
+  </form>
 </div>
 
 <footer>
@@ -224,6 +251,25 @@ function renderTime() {
     timeEl.innerHTML = `<div class="u txt" style="font-size:${fs}px">${m}${arrows('m')}</div><div class="col txt" style="font-size:${fs}px;transform:translateY(-.06em)">:</div><div class="u txt" style="font-size:${fs}px">${s}${arrows('s')}</div>`;
   }
 }
+// 숫자를 누르면 입력창 (멈춰 있을 때만)
+function openSheet() {
+  if (st.running) return;
+  const t = shown(); $('#shM').value = Math.floor(t / 60); $('#shS').value = String(t % 60).padStart(2, '0');
+  $('#sheet').hidden = false; $('#shM').focus(); $('#shM').select();
+}
+const closeSheet = () => { $('#sheet').hidden = true; };
+timeEl.addEventListener('click', e => { if (!e.target.closest('.arr')) openSheet(); });
+$('#sheetNo').onclick = closeSheet;
+$('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
+$('#shM').addEventListener('focus', e => e.target.select()); $('#shS').addEventListener('focus', e => e.target.select());
+$('#shM').addEventListener('input', e => { if (e.target.value.length >= 3) $('#shS').focus(); });
+$('#sheetForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const m = Math.min(999, parseInt($('#shM').value) || 0), sec = Math.min(59, parseInt($('#shS').value) || 0);
+  if (m * 60 + sec > 0) setTotal(m * 60 + sec);
+  closeSheet();
+});
+
 // 화살표: 누르고 있으면 계속
 let holdT;
 timeEl.addEventListener('pointerdown', e => {
@@ -316,6 +362,7 @@ $('#fs').onclick = fsToggle;
 });
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
+  if (!$('#sheet').hidden) { if (e.key === 'Escape') closeSheet(); return; }
   if (e.code === 'Space') { e.preventDefault(); toggle(); }
   else if (e.key === 'r' || e.key === 'R') reset();
   else if (e.key === 'f' || e.key === 'F') fsToggle();
@@ -330,6 +377,7 @@ if (q.get('num')) st.num = q.get('num');
 if (q.get('left')) st.left = +q.get('left');
 if (q.get('inv')) document.body.classList.add('inv');
 if (q.get('run')) setTimeout(start, 50);
+if (q.get('sheet')) openSheet();
 sync();
 requestAnimationFrame(frame);
 </script>
